@@ -1,26 +1,31 @@
 import Avatar from "./Avatar";
 import Card from "./Card";
-import ClickOutHandler from 'react-clickout-handler'
-import {useContext, useEffect, useState} from "react";
+import ClickOutHandler from 'react-clickout-handler';
+import { useContext, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import ReactTimeAgo from "react-time-ago";
-import {UserContext} from "../contexts/UserContext";
-import {useSupabaseClient} from "@supabase/auth-helpers-react";
+import { UserContext } from "../contexts/UserContext";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import Image from "next/image";
 
-export default function PostCard({id,content,created_at,photos,profiles:authorProfile}) {
-  const [dropdownOpen,setDropdownOpen] = useState(false);
-  const [likes,setLikes] = useState([]);
-  const [comments,setComments] = useState([]);
-  const [commentText,setCommentText] = useState('');
-  const [isSaved,setIsSaved] = useState(false);
-  const {profile:myProfile} = useContext(UserContext);
+export default function PostCard({ id, content, created_at, photos, profiles: authorProfile }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [likes, setLikes] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
+  const { profile: myProfile } = useContext(UserContext);
   const supabase = useSupabaseClient();
-  useEffect(() => {
-    fetchLikes();
-    fetchComments();
-    if (myProfile?.id) fetchIsSaved();
-  }, [myProfile?.id]);
-  function fetchIsSaved() {
+
+  const fetchComments = useCallback(() => {
+    supabase
+      .from('posts')
+      .select('*, profiles(*)')
+      .eq('parent', id)
+      .then(result => setComments(result.data));
+  }, [id, supabase]);
+
+  const fetchIsSaved = useCallback(() => {
     supabase
       .from('saved_posts')
       .select()
@@ -32,18 +37,23 @@ export default function PostCard({id,content,created_at,photos,profiles:authorPr
         } else {
           setIsSaved(false);
         }
-      })
-  }
-  function fetchLikes() {
-    supabase.from('likes').select().eq('post_id', id)
+      });
+  }, [id, myProfile?.id, supabase]);
+
+  const fetchLikes = useCallback(() => {
+    supabase
+      .from('likes')
+      .select()
+      .eq('post_id', id)
       .then(result => setLikes(result.data));
-  }
-  function fetchComments() {
-    supabase.from('posts')
-      .select('*, profiles(*)')
-      .eq('parent', id)
-      .then(result => setComments(result.data));
-  }
+  }, [id, supabase]);
+
+  useEffect(() => {
+    fetchLikes();
+    fetchComments();
+    if (myProfile?.id) fetchIsSaved();
+  }, [myProfile?.id, fetchLikes, fetchComments, fetchIsSaved]);
+
   function openDropdown(e) {
     e.stopPropagation();
     setDropdownOpen(true);
@@ -190,17 +200,24 @@ export default function PostCard({id,content,created_at,photos,profiles:authorPr
         </div>
       </div>
       <div>
-        <p className="my-3 text-sm">{content}</p>
-        {photos?.length > 0 && (
-          <div className="flex gap-4">
-            {photos.map(photo => (
-              <div key={photo} className="">
-                <img src={photo} className="rounded-md" alt=""/>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <p className="my-3 text-sm">{content}</p>
+      {photos?.length > 0 && (
+        <div className="flex gap-4">
+          {photos.map(photo => (
+            <div key={photo} className="">
+              {/* Updated Image Component */}
+              <Image 
+                src={photo} 
+                alt="Post photo"
+                width={200} // Set an appropriate width
+                height={200} // Set an appropriate height
+                className="rounded-md" 
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
       <div className="mt-5 flex gap-8">
         <button className="flex gap-2 items-center" onClick={toggleLike}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={"w-6 h-6 " + (isLikedByMe ? 'fill-red-500' : '')}>

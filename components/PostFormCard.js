@@ -4,6 +4,7 @@ import {useContext, useEffect, useState} from "react";
 import {useSession, useSupabaseClient} from "@supabase/auth-helpers-react";
 import {UserContext} from "../contexts/UserContext";
 import Preloader from "./Preloader";
+import Image from "next/image";
 
 export default function PostFormCard({onPost}) {
   const [content,setContent] = useState('');
@@ -57,21 +58,28 @@ export default function PostFormCard({onPost}) {
           <Avatar url={profile?.avatar} />
         </div>
         {profile && (
-          <textarea value={content}
-                    onChange={e => setContent(e.target.value)}
-                    className="grow p-3 h-14" placeholder={`Whats on your mind, ${profile?.name}?`} />
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="grow p-3 h-14"
+            placeholder={`What's on your mind, ${profile?.name}?`} 
+          />
         )}
       </div>
-      {isUploading && (
-        <div>
-          <Preloader />
-        </div>
-      )}
+
+      {isUploading && <Preloader />}
+
       {uploads.length > 0 && (
         <div className="flex gap-2">
-          {uploads.map(upload => (
-            <div className="mt-2" >
-              <img src={upload} alt="" className="w-auto h-24 rounded-md" />
+          {uploads.map((upload, index) => (
+            <div key={index} className="mt-2">  {/* Added key for each image */}
+              <Image 
+                src={upload} 
+                alt={`Uploaded image ${index + 1}`} 
+                width={200} // Set appropriate width
+                height={150} // Set appropriate height
+                className="w-auto h-24 rounded-md" 
+              />
             </div>
           ))}
         </div>
